@@ -1,4 +1,4 @@
-# E-Commerce-Advanced-Analytics--SQL
+# E-Commerce-Advanced-Analytics-SQL
 Advanced End-to-end SQL analytics project demonstrating window functions, CTEs, cohort analysis, predictive modeling, Customer segmentation, RFM analysis, retention cohorts, time-series forecasting, and recursive queries on e-commerce data
 
 ## Table of Contents:
@@ -55,7 +55,7 @@ This project addresses these challenges by building a comprehensive SQL-based an
 Business Value: Identifies the most valuable customers and tracks their revenue contribution over time.
 
 
-```language
+```bash
 WITH customer_orders AS (
     SELECT 
         c.customer_id,
@@ -107,7 +107,7 @@ ORDER BY lifetime_value DESC;
 ### 2️⃣ Cohort Retention Analysis:
 Business Value: Tracks how well different customer cohorts are retained over time, crucial for measuring marketing effectiveness.
 
-```language
+```bash
 WITH customer_cohorts AS (
     SELECT 
         customer_id,
@@ -163,7 +163,7 @@ ORDER BY cohort_month, months_since_cohort;
 ### 3️⃣ RFM Customer Segmentation:
 Business Value: Segments customers based on purchasing behavior to enable personalized marketing campaigns.
 
-```language
+```bash
 WITH customer_rfm_base AS (
     SELECT 
         c.customer_id,
@@ -226,7 +226,7 @@ ORDER BY rfm_total_score DESC, monetary_value DESC;
 ### 4️⃣ Time Series Analysis with Moving Averages:
 Business Value: Identifies sales trends and smooths out daily volatility to reveal underlying patterns.
 
-```language
+```bash
 WITH daily_sales AS (
     SELECT 
         o.order_date,
@@ -288,7 +288,7 @@ ORDER BY order_date DESC;
 ### 5️⃣ Predictive Purchase Modeling:
 Business Value: Predicts when customers are likely to make their next purchase, enabling proactive engagement.
 
-```language
+```bash
 WITH customer_order_sequence AS (
     SELECT 
         c.customer_id,
@@ -347,4 +347,107 @@ WHERE total_orders >= 2
 ORDER BY days_since_last_order DESC;
 ```
 
+### Key Insights:
+- Calculates average time between purchases for each customer
+- Uses statistical deviation to identify anomalies
+- Flags customers who are overdue for re-engagement campaigns
 
+6️⃣ Multi-Dimensional Sales Report (CUBE)
+Business Value: Provides comprehensive sales reporting across multiple dimensions simultaneously.
+
+```bash
+SELECT 
+    COALESCE(p.category, 'ALL CATEGORIES') AS category,
+    COALESCE(c.country, 'ALL COUNTRIES') AS country,
+    COALESCE(TO_CHAR(o.order_date, 'YYYY-MM'), 'ALL MONTHS') AS order_month,
+    COUNT(DISTINCT o.order_id) AS total_orders,
+    COUNT(DISTINCT c.customer_id) AS unique_customers,
+    SUM(oi.quantity) AS total_units_sold,
+    ROUND(SUM(oi.quantity * oi.unit_price * (1 - oi.discount_percent/100)), 2) AS total_revenue,
+    ROUND(AVG(oi.quantity * oi.unit_price * (1 - oi.discount_percent/100)), 2) AS avg_order_value,
+    GROUPING(p.category) AS category_grouping,
+    GROUPING(c.country) AS country_grouping,
+    GROUPING(TO_CHAR(o.order_date, 'YYYY-MM')) AS month_grouping
+FROM orders o
+JOIN customers c ON o.customer_id = c.customer_id
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id
+WHERE o.order_status = 'Completed'
+GROUP BY CUBE(p.category, c.country, TO_CHAR(o.order_date, 'YYYY-MM'))
+ORDER BY 
+    GROUPING(p.category), 
+    GROUPING(c.country), 
+    GROUPING(TO_CHAR(o.order_date, 'YYYY-MM')),
+    category,
+    country,
+    order_month;
+```
+
+### Key Insights:
+- Single query generates all possible aggregation combinations
+- Provides grand totals, subtotals by category, country, and month
+- Eliminates need for multiple separate queries
+
+## Challenges Encountered:
+
+### Challenge 1: Handling Date Arithmetic for Cohort Analysis
+Issue: Calculating months between dates accurately, especially when dealing with month-end edge cases.
+Solution: Used PostgreSQL's AGE() function combined with EXTRACT() to calculate exact month differences:
+
+```bash
+EXTRACT(YEAR FROM AGE(o.order_date, cc.cohort_month)) * 12 + 
+EXTRACT(MONTH FROM AGE(o.order_date, cc.cohort_month)) AS months_since_cohort
+```
+
+
+### Challenge 2: Performance Optimization with Large Datasets
+Issue: Window functions can be computationally expensive, especially with multiple partitions.
+Solution:
+
+Created strategic composite indexes on frequently joined columns
+Used CTEs to break complex queries into manageable chunks
+Leveraged ROWS BETWEEN instead of RANGE BETWEEN for better performance
+
+```bash
+CREATE INDEX idx_orders_customer_date_status ON orders(customer_id, order_date, order_status);
+```
+
+### Challenge 3: RFM Scoring Logic
+Issue: Determining appropriate thresholds for customer segmentation that work across different business scales.
+Solution: Used NTILE(5) to create dynamic quintile-based scoring that automatically adjusts to the data distribution, rather than hard-coded thresholds.
+
+### Challenge 4: Handling NULL Values in Moving Averages
+Issue: Early dates in the dataset don't have enough preceding rows for full moving average windows.
+Solution: Used ROWS BETWEEN n PRECEDING AND CURRENT ROW which gracefully handles edge cases by using available rows only.
+
+## Conclusion:
+This project demonstrates advanced SQL proficiency essential for senior data analyst and analytics engineer roles. The queries showcase:
+
+- Technical Mastery: Complex window functions, recursive CTEs, and advanced analytical patterns
+- Business Acumen: Each query solves a real business problem with measurable impact
+- Best Practices: Proper indexing, query optimization, and code organization
+- Scalability: Techniques that work efficiently with large datasets
+
+## Real-World Applications:
+- Marketing Teams can use RFM segmentation to create targeted campaigns
+- Sales Teams can identify high-value customers and prioritize outreach
+- Product Teams can understand which products drive revenue
+- Executive Leadership can track KPIs and make data-driven strategic decisions
+
+## Key Takeaways:
+- ✅ Window functions are powerful for calculating running metrics and rankings
+- ✅ CTEs improve query readability and maintainability
+- ✅ Proper indexing is crucial for query performance
+- ✅ Statistical measures (averages, standard deviations) enable predictive analytics
+- ✅ Multi-dimensional analysis (CUBE/ROLLUP) provides comprehensive reporting
+
+### 🤝 Connect With Me
+LinkedIn: ![](https://www.linkedin.com/in/ruby-ihekweme-aat-aca-b25001174?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=ios_app)
+GitHub: ![](https://github.com/rubytechme)
+Email: rubyugonnaya@gmail.com
+
+
+### 📜 License
+This project is open source - feel free to use it for learning and portfolio purposes.
+
+⭐ If you found this project helpful, please give it a star!
